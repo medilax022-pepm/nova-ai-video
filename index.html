@@ -4,21 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova AI | Video Generation Studio</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
+    <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Alpine.js (State Management) -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         [x-cloak] { display: none !important; }
         body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #fafafa; }
-        .glass { background: rgba(18, 18, 21, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .glass-header { background: rgba(9, 9, 11, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid #27272a; }
+        .card-dark { background: #18181b; border: 1px solid #27272a; }
         .shimmer {
             background: linear-gradient(90deg, #18181b 25%, #27272a 50%, #18181b 75%);
             background-size: 200% 100%;
@@ -27,7 +24,7 @@
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body x-data="novaApp()" class="min-h-screen flex overflow-hidden">
+<body x-data="novaApp()" x-init="initApp()" class="min-h-screen flex overflow-hidden">
 
     <!-- SIDEBAR -->
     <aside class="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col hidden md:flex">
@@ -35,247 +32,315 @@
             <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <i data-lucide="sparkles" class="text-white w-5 h-5"></i>
             </div>
-            <span class="text-xl font-bold tracking-tight">Nova AI</span>
+            <span class="text-xl font-bold tracking-tight text-white">Nova AI</span>
         </div>
 
         <nav class="flex-1 px-4 space-y-1">
-            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-zinc-900 text-white"><i data-lucide="layout-grid" class="w-4 h-4"></i> Generator</a>
-            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white transition"><i data-lucide="video" class="w-4 h-4"></i> My Videos</a>
-            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white transition"><i data-lucide="credit-card" class="w-4 h-4"></i> Billing</a>
-            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white transition"><i data-lucide="settings" class="w-4 h-4"></i> Settings</a>
+            <button @click="view = 'generator'" :class="view === 'generator' ? 'bg-zinc-900 text-white' : 'text-zinc-400'" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:text-white transition">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i> Generator
+            </button>
+            <button @click="view = 'history'" :class="view === 'history' ? 'bg-zinc-900 text-white' : 'text-zinc-400'" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:text-white transition">
+                <i data-lucide="video" class="w-4 h-4"></i> My Videos
+            </button>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:text-white transition">
+                <i data-lucide="credit-card" class="w-4 h-4"></i> Billing
+            </a>
         </nav>
 
-        <div class="p-4 m-4 rounded-xl bg-gradient-to-br from-indigo-900/20 to-zinc-900 border border-indigo-500/20">
-            <p class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1">Credits</p>
-            <div class="flex justify-between items-center">
-                <span class="text-lg font-bold">120 / 500</span>
-                <button class="text-[10px] bg-indigo-600 px-2 py-1 rounded font-bold uppercase">Upgrade</button>
+        <!-- USER CREDITS SECTION -->
+        <div class="p-4 m-4 rounded-xl card-dark">
+            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Available Credits</p>
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-2xl font-bold text-white" x-text="user ? credits : 0"></span>
+                    <span class="text-xs text-zinc-600">/ 500</span>
+                </div>
+                <button class="text-xs text-indigo-400 font-semibold hover:underline">Top up</button>
+            </div>
+            <div class="w-full bg-zinc-800 h-1 mt-3 rounded-full overflow-hidden">
+                <div class="bg-indigo-600 h-full transition-all duration-500" :style="`width: ${(credits/500)*100}%`"></div>
             </div>
         </div>
     </aside>
 
-    <!-- MAIN UI -->
+    <!-- MAIN CONTENT -->
     <div class="flex-1 flex flex-col relative overflow-hidden">
         
-        <!-- HEADER -->
-        <header class="h-16 border-b border-zinc-800 flex items-center justify-between px-8 bg-zinc-950/50 backdrop-blur-md">
-            <div class="md:hidden flex items-center gap-2">
-                <i data-lucide="sparkles" class="text-indigo-500"></i>
-                <span class="font-bold">Nova</span>
-            </div>
-            <div class="hidden md:block text-zinc-500 text-sm font-medium">Video Generation Workspace</div>
+        <!-- TOP NAV -->
+        <header class="h-16 flex items-center justify-between px-8 glass-header sticky top-0 z-40">
+            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest" x-text="view === 'generator' ? 'Video Studio' : 'Your History'"></h2>
 
             <div class="flex items-center gap-4">
                 <template x-if="!user">
                     <div class="flex items-center gap-3">
-                        <button @click="showLogin = true" class="text-sm font-medium text-zinc-400 hover:text-white">Login</button>
-                        <button @click="showRegister = true" class="bg-white text-black text-sm font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition">Register</button>
+                        <button @click="showLogin = true" class="text-sm font-medium text-zinc-400 hover:text-white transition">Login</button>
+                        <button @click="showLogin = true" class="bg-white text-black text-sm font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition">Get Started</button>
                     </div>
                 </template>
+
                 <template x-if="user">
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm text-zinc-400" x-text="user.email"></span>
-                        <button @click="signOut()" class="text-zinc-500 hover:text-white transition"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                    <div class="flex items-center gap-4" x-cloak>
+                        <div class="flex items-center gap-3 border-r border-zinc-800 pr-4">
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-white" x-text="user.user_metadata.full_name || 'Nova User'"></p>
+                                <p class="text-[10px] text-zinc-500" x-text="user.email"></p>
+                            </div>
+                            <img :src="user.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=' + user.email" 
+                                 class="w-10 h-10 rounded-full border border-zinc-700 shadow-sm" alt="Profile">
+                        </div>
+                        <button @click="handleSignOut()" class="text-zinc-400 hover:text-red-400 transition">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                        </button>
                     </div>
                 </template>
             </div>
         </header>
 
-        <!-- DASHBOARD CONTENT -->
+        <!-- DASHBOARD BODY -->
         <main class="flex-1 overflow-y-auto p-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 to-zinc-950">
-            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                <!-- CONTROL PANEL -->
+            
+            <!-- GENERATOR VIEW -->
+            <div x-show="view === 'generator'" class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8" x-transition>
                 <div class="lg:col-span-5 space-y-6">
                     <div class="space-y-3">
-                        <label class="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-                            <i data-lucide="pencil-line" class="w-4 h-4 text-indigo-400"></i> Prompt
-                        </label>
-                        <textarea x-model="prompt" class="w-full h-44 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-600 outline-none resize-none placeholder-zinc-600 transition" 
-                            placeholder="A cinematic drone shot of a futuristic neon city at sunset..."></textarea>
+                        <label class="text-sm font-semibold text-zinc-300">Prompt Description</label>
+                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-indigo-600 outline-none resize-none transition placeholder-zinc-700" 
+                                  placeholder="Describe the cinematic video you want to generate..."></textarea>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">AI Model</label>
-                            <select x-model="model" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-sm outline-none focus:border-indigo-500">
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase">Model</label>
+                            <select x-model="model" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm outline-none">
                                 <option>Google Veo 3</option>
-                                <option>Seedance Pro</option>
+                                <option>Seedance</option>
                                 <option>Wan 2.6</option>
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ratio</label>
-                            <div class="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
-                                <button @click="ratio = '16:9'" :class="ratio === '16:9' ? 'bg-zinc-800 text-white' : 'text-zinc-500'" class="flex-1 py-1.5 rounded text-xs font-bold transition">16:9</button>
-                                <button @click="ratio = '9:16'" :class="ratio === '9:16' ? 'bg-zinc-800 text-white' : 'text-zinc-500'" class="flex-1 py-1.5 rounded text-xs font-bold transition">9:16</button>
+                            <label class="text-[10px] font-bold text-zinc-500 uppercase">Ratio</label>
+                            <div class="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                                <button @click="ratio = '16:9'" :class="ratio === '16:9' ? 'bg-zinc-800 text-white' : 'text-zinc-500'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">16:9</button>
+                                <button @click="ratio = '9:16'" :class="ratio === '9:16' ? 'bg-zinc-800 text-white' : 'text-zinc-500'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">9:16</button>
                             </div>
                         </div>
                     </div>
 
-                    <button @click="generateVideo()" :disabled="loading" 
-                        class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-3 group">
-                        <span x-show="!loading" class="flex items-center gap-2 text-lg">
-                            <i data-lucide="play-circle" class="w-5 h-5 group-hover:scale-110 transition"></i> Generate Video
-                        </span>
-                        <span x-show="loading" class="flex items-center gap-3">
+                    <button @click="generateVideo()" :disabled="loading || credits < 10" 
+                            class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl transition shadow-lg shadow-indigo-600/20">
+                        <span x-show="!loading" x-text="credits < 10 ? 'Insufficient Credits' : 'Generate Video (10cr)'"></span>
+                        <span x-show="loading" class="flex items-center justify-center gap-2">
                             <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Processing...
+                            Creating Magic...
                         </span>
                     </button>
                 </div>
 
-                <!-- PREVIEW SECTION -->
+                <!-- PREVIEW AREA -->
                 <div class="lg:col-span-7 flex flex-col gap-4">
-                    <div class="relative w-full rounded-2xl border border-zinc-800 bg-zinc-900/50 flex items-center justify-center min-h-[420px] overflow-hidden" 
-                        :class="ratio === '9:16' ? 'aspect-[9/16] max-w-[320px] mx-auto' : 'aspect-video w-full'">
+                    <div class="relative w-full rounded-3xl border border-zinc-800 bg-zinc-900/50 flex items-center justify-center min-h-[400px] overflow-hidden" 
+                         :class="ratio === '9:16' ? 'aspect-[9/16] max-w-[300px] mx-auto' : 'aspect-video'">
                         
-                        <!-- Empty State -->
-                        <div x-show="!loading && !generated" class="text-center p-8 space-y-4">
-                            <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto text-zinc-600">
-                                <i data-lucide="clapperboard" class="w-8 h-8"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-zinc-300">Ready to create?</h3>
-                                <p class="text-sm text-zinc-500 mt-1">Describe your vision and hit generate.</p>
-                            </div>
+                        <div x-show="!loading && !generated" class="text-zinc-700 flex flex-col items-center">
+                            <i data-lucide="video" class="w-12 h-12 mb-2 opacity-20"></i>
+                            <span class="text-sm font-medium">Video Preview</span>
                         </div>
 
-                        <!-- Loading State -->
-                        <div x-show="loading" x-cloak class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-950/80 backdrop-blur-sm space-y-6">
-                            <div class="w-64 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div x-show="loading" x-cloak class="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/60 backdrop-blur-sm z-10">
+                            <div class="w-48 h-1 bg-zinc-800 rounded-full overflow-hidden mb-4">
                                 <div class="shimmer w-full h-full"></div>
                             </div>
-                            <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Encoding AI Frames</p>
+                            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest animate-pulse">Processing frames</p>
                         </div>
 
-                        <!-- Video Player Preview -->
                         <template x-if="generated && !loading">
-                            <div class="relative w-full h-full group">
-                                <video class="w-full h-full object-cover" autoplay loop muted playsinline 
-                                    src="https://assets.mixkit.co/videos/preview/mixkit-flying-over-a-futuristic-city-at-night-42358-large.mp4"></video>
-                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition p-6 flex flex-col justify-end">
-                                    <div class="flex justify-between items-center">
-                                        <div class="text-sm font-bold">Preview_Result_01.mp4</div>
-                                        <button class="bg-white text-black p-2 rounded-full hover:bg-zinc-200"><i data-lucide="download" class="w-4 h-4"></i></button>
-                                    </div>
-                                </div>
-                            </div>
+                            <video class="w-full h-full object-cover" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-abstract-tunnel-of-blue-and-pink-neon-lights-31846-large.mp4"></video>
                         </template>
-                    </div>
-                    <div class="flex justify-between items-center px-2">
-                        <div class="flex gap-4">
-                            <div class="flex flex-col"><span class="text-[10px] text-zinc-500 uppercase font-bold">Res</span><span class="text-xs text-zinc-300">1080p</span></div>
-                            <div class="flex flex-col"><span class="text-[10px] text-zinc-500 uppercase font-bold">FPS</span><span class="text-xs text-zinc-300">24</span></div>
-                        </div>
-                        <div class="text-[10px] text-zinc-700 font-medium">NOVA ENGINE V3.2</div>
                     </div>
                 </div>
             </div>
+
+            <!-- HISTORY VIEW -->
+            <div x-show="view === 'history'" class="max-w-6xl mx-auto" x-transition x-cloak>
+                <template x-if="videoHistory.length === 0">
+                    <div class="flex flex-col items-center justify-center py-20 text-zinc-600">
+                        <i data-lucide="folder-open" class="w-16 h-16 mb-4 opacity-20"></i>
+                        <p class="text-lg font-medium">No videos generated yet.</p>
+                        <button @click="view = 'generator'" class="text-indigo-400 mt-2 hover:underline">Start creating now</button>
+                    </div>
+                </template>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="vid in videoHistory" :key="vid.id">
+                        <div class="card-dark rounded-2xl overflow-hidden group hover:border-indigo-500/50 transition">
+                            <div class="aspect-video relative bg-zinc-950">
+                                <video class="w-full h-full object-cover" muted onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0;" :src="vid.url"></video>
+                                <div class="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] text-zinc-300" x-text="vid.ratio"></div>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-sm text-white font-medium line-clamp-2 mb-3" x-text="vid.prompt"></p>
+                                <div class="flex justify-between items-center text-[10px] text-zinc-500">
+                                    <span x-text="new Date(vid.timestamp).toLocaleDateString()"></span>
+                                    <span class="bg-zinc-800 px-2 py-0.5 rounded uppercase" x-text="vid.model"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- MODALS -->
-    <!-- Login Modal -->
-    <div x-show="showLogin" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" x-transition>
-        <div @click.away="showLogin = false" class="glass w-full max-w-md p-8 rounded-3xl relative">
-            <button @click="showLogin = false" class="absolute top-4 right-4 text-zinc-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <h2 class="text-2xl font-bold mb-2">Welcome Back</h2>
-            <p class="text-zinc-400 text-sm mb-6">Access your pro generation tools.</p>
+    <!-- AUTH MODAL -->
+    <div x-show="showLogin" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+        <div @click.away="showLogin = false" class="bg-zinc-950 border border-zinc-800 rounded-[2rem] max-w-md w-full p-10 relative shadow-2xl">
+            <button @click="showLogin = false" class="absolute top-6 right-6 text-zinc-500 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h2 class="text-3xl font-bold mb-2">Join Nova AI</h2>
+            <p class="text-zinc-400 text-sm mb-8">Sign in to start creating cinematic videos.</p>
             
-            <button @click="signInWithGoogle()" class="w-full py-3 border border-zinc-700 bg-zinc-900 rounded-xl flex items-center justify-center gap-3 hover:bg-zinc-800 transition mb-4 font-semibold">
+            <button @click="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-3 rounded-2xl hover:bg-zinc-200 transition shadow-lg">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 Continue with Google
             </button>
-            <div class="text-center text-xs text-zinc-600 font-bold uppercase py-2">OR</div>
-            <input type="email" placeholder="Email" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-3 outline-none focus:border-indigo-600 transition">
-            <input type="password" placeholder="Password" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-6 outline-none focus:border-indigo-600 transition">
-            <button class="w-full py-3 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition">Log In</button>
         </div>
     </div>
 
-    <!-- Register Modal -->
-    <div x-show="showRegister" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" x-transition>
-        <div @click.away="showRegister = false" class="glass w-full max-w-md p-8 rounded-3xl relative">
-            <button @click="showRegister = false" class="absolute top-4 right-4 text-zinc-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <h2 class="text-2xl font-bold mb-2">Join Nova AI</h2>
-            <p class="text-zinc-400 text-sm mb-6">The future of video starts here.</p>
-            
-            <button @click="signInWithGoogle()" class="w-full py-3 border border-zinc-700 bg-zinc-900 rounded-xl flex items-center justify-center gap-3 hover:bg-zinc-800 transition mb-4 font-semibold">
-                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Sign up with Google
-            </button>
-            <div class="text-center text-xs text-zinc-600 font-bold uppercase py-2">OR</div>
-            <input type="text" placeholder="Full Name" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-3 outline-none focus:border-indigo-600 transition">
-            <input type="email" placeholder="Email" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-3 outline-none focus:border-indigo-600 transition">
-            <input type="password" placeholder="Password" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-6 outline-none focus:border-indigo-600 transition">
-            <button class="w-full py-3 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition">Create Account</button>
-        </div>
-    </div>
-
+    <!-- MAIN APP SCRIPT -->
     <script>
-        // --- Supabase Config ---
-        // Replace with your actual project URL and Key
-        const supabaseUrl = "https://qvuwznitvqruqmkkuecl.supabase.co";
-        const supabaseKey = "sb_publishable_lrwRx5E9AzmVpHbGhHQa3A_DOnlyV05";
-;
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        const SUPABASE_URL = 'https://qvuwznitvqruqmkkuecl.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_lrwRx5E9AzmVpHbGhHQa3A_DOnlyV05';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function novaApp() {
             return {
+                view: 'generator', // 'generator' or 'history'
                 user: null,
+                credits: 120,
+                videoHistory: [],
                 showLogin: false,
-                showRegister: false,
-                prompt: '',
-                model: 'Google Veo 3',
-                ratio: '16:9',
                 loading: false,
                 generated: false,
+                ratio: '16:9',
+                prompt: '',
+                model: 'Google Veo 3',
 
-                async init() {
+                async initApp() {
                     lucide.createIcons();
-                    // Check for existing session
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    this.user = session?.user ?? null;
 
-                    // Listen for auth changes
-                    supabaseClient.auth.onAuthStateChange((_event, session) => {
-                        this.user = session?.user ?? null;
+                    // Handle OAuth tokens
+                    const hash = window.location.hash;
+                    if (hash && hash.includes('access_token=')) {
+                        await this.handleHashTokens(hash);
+                    }
+
+                    // Initial session fetch
+                    const { data: { session } } = await supabase.auth.getSession();
+                    this.updateUserState(session);
+
+                    // Auth listeners
+                    supabase.auth.onAuthStateChange((event, session) => {
+                        this.updateUserState(session);
                     });
                 },
 
-                async signInWithGoogle() {
-                    const { error } = await supabaseClient.auth.signInWithOAuth({
+                updateUserState(session) {
+                    if (session) {
+                        this.user = session.user;
+                        this.loadUserData();
+                        this.showLogin = false;
+                    } else {
+                        this.user = null;
+                        this.videoHistory = [];
+                        this.credits = 0;
+                    }
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                // Persistent Data Logic
+                loadUserData() {
+                    if (!this.user) return;
+                    
+                    const storageKey = `nova_data_${this.user.id}`;
+                    const savedData = JSON.parse(localStorage.getItem(storageKey));
+                    
+                    if (savedData) {
+                        this.credits = savedData.credits;
+                        this.videoHistory = savedData.history;
+                    } else {
+                        this.credits = 120;
+                        this.videoHistory = [];
+                        this.saveUserData();
+                    }
+                },
+
+                saveUserData() {
+                    if (!this.user) return;
+                    const storageKey = `nova_data_${this.user.id}`;
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        credits: this.credits,
+                        history: this.videoHistory
+                    }));
+                },
+
+                async handleHashTokens(hash) {
+                    const params = new URLSearchParams(hash.substring(1));
+                    const access = params.get('access_token');
+                    const refresh = params.get('refresh_token');
+                    if (access) {
+                        await supabase.auth.setSession({ access_token: access, refresh_token: refresh });
+                        history.replaceState(null, null, window.location.pathname);
+                    }
+                },
+
+                async handleGoogleLogin() {
+                    await supabase.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin }
                     });
-                    if (error) console.error('Auth error:', error.message);
                 },
 
-                async signOut() {
-                    await supabaseClient.auth.signOut();
+                async handleSignOut() {
+                    await supabase.auth.signOut();
+                    window.location.reload();
                 },
 
                 generateVideo() {
-                    if (!this.prompt) return alert('Please enter a prompt!');
-                    if (!this.user) {
-                        this.showLogin = true;
-                        return;
-                    }
-                    
+                    if (!this.user) { this.showLogin = true; return; }
+                    if (!this.prompt) return alert('Enter a prompt!');
+                    if (this.credits < 10) return alert('Out of credits! Please upgrade.');
+
                     this.loading = true;
                     this.generated = false;
-                    
-                    // Simulate generation delay
+
+                    // Simulation of AI process
                     setTimeout(() => {
                         this.loading = false;
                         this.generated = true;
+                        
+                        // Deduct credits
+                        this.credits -= 10;
+
+                        // Create video object
+                        const newVideo = {
+                            id: Date.now(),
+                            prompt: this.prompt,
+                            timestamp: new Date().toISOString(),
+                            url: 'https://assets.mixkit.co/videos/preview/mixkit-abstract-tunnel-of-blue-and-pink-neon-lights-31846-large.mp4',
+                            ratio: this.ratio,
+                            model: this.model
+                        };
+
+                        // Update history (newest first)
+                        this.videoHistory.unshift(newVideo);
+                        
+                        // Save to localStorage
+                        this.saveUserData();
+
                         this.$nextTick(() => lucide.createIcons());
-                    }, 4000);
+                    }, 3500);
                 }
             }
         }
