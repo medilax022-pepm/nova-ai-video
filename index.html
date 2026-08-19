@@ -8,10 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Libraries -->
+    <!-- Dependencies (Correct Order) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Alpine.js moves to bottom for safety -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -26,7 +26,7 @@
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body x-data="novaApp()" x-init="initApp()" class="min-h-screen flex overflow-hidden">
+<body x-data="novaApp()" class="min-h-screen flex overflow-hidden">
 
     <!-- SIDEBAR -->
     <aside class="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col hidden md:flex shrink-0">
@@ -71,13 +71,13 @@
             <div class="flex items-center gap-4">
                 <template x-if="!user">
                     <div class="flex items-center gap-3">
-                        <button @click="showLogin = true" class="text-sm font-medium text-zinc-400 hover:text-white transition">Login</button>
-                        <button @click="showLogin = true" class="bg-white text-black text-sm font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition">Get Started</button>
+                        <button @click="showLogin = true" class="text-sm font-medium text-zinc-400 hover:text-white">Login</button>
+                        <button @click="showLogin = true" class="bg-white text-black text-sm font-bold px-4 py-2 rounded-lg hover:bg-zinc-200">Register</button>
                     </div>
                 </template>
 
                 <template x-if="user">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4" x-cloak>
                         <div class="flex items-center gap-3 border-r border-zinc-800 pr-4">
                             <div class="text-right hidden sm:block">
                                 <p class="text-sm font-bold text-white" x-text="user.user_metadata.full_name || 'User'"></p>
@@ -91,14 +91,15 @@
             </div>
         </header>
 
-        <!-- CONTENT -->
+        <!-- MAIN DASHBOARD -->
         <main class="flex-1 overflow-y-auto p-8 bg-zinc-950">
-            <!-- Generator -->
-            <div x-show="view === 'generator'" class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Generator View -->
+            <div x-show="view === 'generator'" class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8" x-cloak>
                 <div class="lg:col-span-5 space-y-6">
                     <div class="space-y-3">
                         <label class="text-sm font-semibold text-zinc-300">Prompt Description</label>
-                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm outline-none focus:ring-1 focus:ring-indigo-500 transition" placeholder="Describe your video..."></textarea>
+                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm outline-none focus:ring-1 focus:ring-indigo-500 transition" placeholder="Describe your cinematic video..."></textarea>
                     </div>
                     <button @click="generateVideo()" :disabled="loading" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl transition">
                         <span x-show="!loading">Generate Video (10cr)</span>
@@ -113,7 +114,7 @@
                         </div>
                         <div x-show="loading" class="text-center">
                             <div class="w-48 h-1 bg-zinc-800 rounded-full overflow-hidden mb-2"><div class="shimmer h-full w-full"></div></div>
-                            <p class="text-[10px] text-zinc-500 uppercase">Rendering...</p>
+                            <p class="text-[10px] text-zinc-500 uppercase">Generating AI frames...</p>
                         </div>
                         <template x-if="generated && !loading">
                             <video class="w-full h-full object-cover" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-abstract-tunnel-of-blue-and-pink-neon-lights-31846-large.mp4"></video>
@@ -122,14 +123,17 @@
                 </div>
             </div>
 
-            <!-- History -->
-            <div x-show="view === 'history'" x-cloak class="max-w-5xl mx-auto">
-                <p class="text-zinc-500">Your generated videos will appear here.</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <!-- History View -->
+            <div x-show="view === 'history'" class="max-w-5xl mx-auto" x-cloak>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <template x-for="vid in videoHistory" :key="vid.id">
                         <div class="card-dark p-2 rounded-xl">
                             <video :src="vid.url" class="rounded-lg w-full aspect-video object-cover" muted></video>
+                            <p class="text-[10px] p-2 text-zinc-500 truncate" x-text="vid.prompt"></p>
                         </div>
+                    </template>
+                    <template x-if="videoHistory.length === 0">
+                        <p class="text-zinc-500">No videos found.</p>
                     </template>
                 </div>
             </div>
@@ -138,21 +142,21 @@
 
     <!-- Login Modal -->
     <div x-show="showLogin" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-        <div @click.away="showLogin = false" class="bg-zinc-950 border border-zinc-800 rounded-[2rem] max-w-md w-full p-10">
-            <h2 class="text-xl font-bold mb-6">Sign in</h2>
-            <button @click="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-3 rounded-xl">
+        <div @click.away="showLogin = false" class="bg-zinc-950 border border-zinc-800 rounded-[2rem] max-w-md w-full p-10 relative">
+            <button @click="showLogin = false" class="absolute top-6 right-6 text-zinc-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h2 class="text-2xl font-bold mb-8">Join Nova AI</h2>
+            <button @click="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200 transition">
                 Continue with Google
             </button>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- JS Logic -->
     <script>
-        // Supabase Init
-        const supabase = window.supabase.createClient(
-            'https://qvuwznitvqruqmkkuecl.supabase.co', 
-            'sb_publishable_lrwRx5E9AzmVpHbGhHQa3A_DOnlyV05'
-        );
+        // Supabase Client (Only One Declaration)
+        const supabaseUrl = 'https://qvuwznitvqruqmkkuecl.supabase.co';
+        const supabaseKey = 'sb_publishable_lrwRx5E9AzmVpHbGhHQa3A_DOnlyV05';
+        const sbClient = supabase.createClient(supabaseUrl, supabaseKey);
 
         function novaApp() {
             return {
@@ -166,20 +170,18 @@
                 prompt: '',
                 ratio: '16:9',
 
-                async initApp() {
-                    // Start icons
+                async init() {
                     lucide.createIcons();
-
-                    // Check session
-                    const { data: { session } } = await supabase.auth.getSession();
-                    this.user = session?.user || null;
                     
-                    if(this.user) this.loadLocalData();
+                    // Check initial session
+                    const { data: { session } } = await sbClient.auth.getSession();
+                    this.user = session?.user || null;
+                    if(this.user) this.loadData();
 
-                    // Listen for auth
-                    supabase.auth.onAuthStateChange((_event, session) => {
+                    // Auth listeners
+                    sbClient.auth.onAuthStateChange((_event, session) => {
                         this.user = session?.user || null;
-                        if(this.user) this.loadLocalData();
+                        if(this.user) this.loadData();
                         this.$nextTick(() => lucide.createIcons());
                     });
                 },
@@ -189,7 +191,7 @@
                     this.$nextTick(() => lucide.createIcons());
                 },
 
-                loadLocalData() {
+                loadData() {
                     const saved = localStorage.getItem(`nova_${this.user.id}`);
                     if (saved) {
                         const data = JSON.parse(saved);
@@ -198,7 +200,7 @@
                     }
                 },
 
-                saveLocalData() {
+                saveData() {
                     if(!this.user) return;
                     localStorage.setItem(`nova_${this.user.id}`, JSON.stringify({
                         credits: this.credits,
@@ -207,18 +209,19 @@
                 },
 
                 async handleGoogleLogin() {
-                    await supabase.auth.signInWithOAuth({ provider: 'google' });
+                    await sbClient.auth.signInWithOAuth({ provider: 'google' });
                 },
 
                 async handleSignOut() {
-                    await supabase.auth.signOut();
+                    await sbClient.auth.signOut();
                     window.location.reload();
                 },
 
                 generateVideo() {
                     if (!this.user) { this.showLogin = true; return; }
-                    if (!this.prompt) return alert('Enter prompt');
-                    
+                    if (!this.prompt) return alert('Please enter a prompt!');
+                    if (this.credits < 10) return alert('Out of credits!');
+
                     this.loading = true;
                     this.generated = false;
 
@@ -232,13 +235,12 @@
                             url: 'https://assets.mixkit.co/videos/preview/mixkit-abstract-tunnel-of-blue-and-pink-neon-lights-31846-large.mp4',
                             timestamp: new Date()
                         });
-                        this.saveLocalData();
+                        this.saveData();
                         this.$nextTick(() => lucide.createIcons());
                     }, 3000);
                 }
             }
         }
     </script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>
