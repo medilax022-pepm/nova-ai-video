@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova AI | Video Generation Studio</title>
+    <title>Nova AI | Video Studio</title>
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -43,16 +43,15 @@
             </button>
         </nav>
 
-        <!-- CREDIT TRACKER -->
         <div class="p-4 m-4 rounded-xl card-dark">
-            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Available Credits</p>
+            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Account Balance</p>
             <div class="flex justify-between items-end">
                 <div x-show="!fetchingCredits">
                     <span class="text-2xl font-bold text-white" x-text="credits"></span>
                     <span class="text-xs text-zinc-600">cr</span>
                 </div>
                 <div x-show="fetchingCredits" class="h-8 w-16 shimmer rounded-md mb-1"></div>
-                <button @click="showPricing = true" class="text-xs text-indigo-400 font-bold hover:underline mb-1 transition">Top up</button>
+                <button @click="showPricing = true" class="text-xs text-indigo-400 font-bold hover:underline mb-1">Top up</button>
             </div>
         </div>
     </aside>
@@ -61,7 +60,7 @@
     <div class="flex-1 flex flex-col relative overflow-hidden bg-zinc-950">
         
         <header class="h-16 flex items-center justify-between px-8 glass-header z-40">
-            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest" x-text="view === 'generator' ? 'Studio' : 'History'"></h2>
+            <h2 class="text-xs font-bold text-zinc-500 uppercase tracking-widest" x-text="view === 'generator' ? 'Creation Studio' : 'History'"></h2>
             
             <div class="flex items-center gap-4">
                 <template x-if="!user">
@@ -72,7 +71,7 @@
                         <div class="flex items-center gap-3 border-r border-zinc-800 pr-4 text-right">
                             <div class="hidden sm:block">
                                 <p class="text-sm font-bold text-white leading-none" x-text="user.user_metadata.full_name || 'User'"></p>
-                                <p class="text-[10px] text-zinc-500 mt-1" x-text="userTier === 'paid' ? 'Pro Member' : 'Free Account'"></p>
+                                <p class="text-[10px] text-zinc-500 mt-1" x-text="userTier === 'paid' ? 'Pro Member' : 'Free Plan'"></p>
                             </div>
                             <img :src="user.user_metadata.avatar_url || 'https://ui-avatars.com/api/?name=' + user.email" class="w-9 h-9 rounded-full border border-zinc-700">
                         </div>
@@ -88,62 +87,71 @@
                 <!-- Left Control Panel -->
                 <div class="lg:col-span-5 space-y-6">
                     <div class="space-y-3">
-                        <label class="text-sm font-semibold text-zinc-300">Prompt Description</label>
-                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm text-white focus:ring-1 focus:ring-indigo-600 outline-none transition" placeholder="A cinematic drone shot of a futuristic neon city..."></textarea>
+                        <label class="text-sm font-semibold text-zinc-300">Description</label>
+                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm text-white focus:ring-1 focus:ring-indigo-600 outline-none" placeholder="Describe your video..."></textarea>
                     </div>
 
-                    <!-- Aspect Ratio Selector -->
+                    <!-- Aspect Ratio -->
                     <div class="space-y-3">
                         <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Aspect Ratio</label>
                         <div class="grid grid-cols-3 gap-2">
-                            <button @click="ratio = '9:16'" :class="ratio === '9:16' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2.5 rounded-xl text-[10px] font-bold transition">9:16 Reels</button>
-                            <button @click="ratio = '16:9'" :class="ratio === '16:9' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2.5 rounded-xl text-[10px] font-bold transition">16:9 Wide</button>
-                            <button @click="ratio = '21:9'" :class="ratio === '21:9' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2.5 rounded-xl text-[10px] font-bold transition">21:9 Ultra</button>
+                            <button @click="ratio = '9:16'" :class="ratio === '9:16' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2 rounded-xl text-[10px] font-bold transition">9:16 Reels</button>
+                            <button @click="ratio = '16:9'" :class="ratio === '16:9' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2 rounded-xl text-[10px] font-bold transition">16:9 Wide</button>
+                            <button @click="ratio = '21:9'" :class="ratio === '21:9' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 border-zinc-800 text-zinc-500'" class="border p-2 rounded-xl text-[10px] font-bold transition">21:9 Cinema</button>
                         </div>
                     </div>
 
-                    <!-- Duration Selector -->
+                    <!-- Duration Selector with INFO BOX -->
                     <div class="space-y-3">
-                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Video Duration</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button @click="duration = 5" :class="duration === 5 ? 'border-indigo-600 bg-indigo-600/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500'" class="border p-4 rounded-xl text-center transition">
-                                <p class="text-xs font-bold">5 Seconds</p>
-                                <p class="text-[10px] opacity-60">5 Credits</p>
-                            </button>
-                            <button @click="duration = 10" :class="duration === 10 ? 'border-indigo-600 bg-indigo-600/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500'" class="border p-4 rounded-xl text-center transition">
-                                <p class="text-xs font-bold">10 Seconds</p>
-                                <p class="text-[10px] opacity-60">10 Credits</p>
-                            </button>
+                        <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Select Duration</label>
+                        <div class="flex items-start gap-4">
+                            <!-- Buttons -->
+                            <div class="flex-1 grid grid-cols-2 gap-2">
+                                <button @click="duration = 5; currentCost = 6" :class="duration === 5 ? 'border-indigo-600 bg-indigo-600/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500'" class="border p-3 rounded-xl text-center transition">
+                                    <p class="text-xs font-bold">5s Clip</p>
+                                </button>
+                                <button @click="duration = 10; currentCost = 10" :class="duration === 10 ? 'border-indigo-600 bg-indigo-600/10 text-white' : 'border-zinc-800 bg-zinc-900 text-zinc-500'" class="border p-3 rounded-xl text-center transition">
+                                    <p class="text-xs font-bold">10s Clip</p>
+                                </button>
+                            </div>
+                            <!-- Info Box -->
+                            <div class="w-32 bg-indigo-500/5 border border-indigo-500/20 p-2.5 rounded-xl self-stretch flex flex-col justify-center">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <i data-lucide="info" class="w-3 h-3 text-indigo-400"></i>
+                                    <span class="text-[9px] font-bold text-indigo-300 uppercase tracking-tighter">Usage Info</span>
+                                </div>
+                                <p class="text-[10px] text-zinc-400 leading-tight">
+                                    5s: <span class="text-white font-bold">6 cr</span><br>
+                                    10s: <span class="text-white font-bold">10 cr</span>
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Generate Button -->
-                    <button @click="generateVideo()" :disabled="loading || credits < duration" 
+                    <button @click="generateVideo()" :disabled="loading || credits < currentCost" 
                             class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white font-bold rounded-2xl transition shadow-xl">
-                        <span x-show="!loading" x-text="credits < duration ? 'Low Balance' : 'Generate Video (' + duration + ' cr)'"></span>
-                        <span x-show="loading" class="flex items-center justify-center gap-2">Synthesizing via Wan 2.1...</span>
+                        <span x-show="!loading" x-text="credits < currentCost ? 'Low Balance' : 'Generate Video (' + currentCost + ' cr)'"></span>
+                        <span x-show="loading" class="flex items-center justify-center gap-2">Synthesizing Frames...</span>
                     </button>
                 </div>
 
-                <!-- Right Preview Area -->
-                <div class="lg:col-span-7 flex flex-col gap-4">
+                <!-- Right Preview -->
+                <div class="lg:col-span-7">
                     <div class="relative w-full rounded-3xl border border-zinc-800 bg-zinc-900 flex items-center justify-center overflow-hidden transition-all duration-500" 
                          :class="{
                             'aspect-[9/16] max-w-[320px] mx-auto': ratio === '9:16',
                             'aspect-video w-full': ratio === '16:9',
                             'aspect-[21/9] w-full': ratio === '21:9'
                          }">
-                        
                         <div x-show="!loading && !generated" class="text-zinc-800 flex flex-col items-center">
                             <i data-lucide="video" class="w-12 h-12 mb-2"></i>
-                            <span class="text-sm font-medium">Video Preview Window</span>
+                            <span class="text-sm">Video Preview</span>
                         </div>
-
                         <div x-show="loading" class="text-center z-10">
                             <div class="w-48 h-1 bg-zinc-800 rounded-full overflow-hidden mb-2"><div class="shimmer h-full w-full"></div></div>
-                            <p class="text-[10px] text-zinc-500 animate-pulse tracking-widest uppercase">Processing Frames</p>
+                            <p class="text-[10px] text-zinc-500 animate-pulse tracking-widest uppercase">Processing via Wan 2.1</p>
                         </div>
-
                         <template x-if="generated && !loading">
                             <video class="w-full h-full object-cover" autoplay loop muted src="https://assets.mixkit.co/videos/preview/mixkit-abstract-tunnel-of-blue-and-pink-neon-lights-31846-large.mp4"></video>
                         </template>
@@ -153,67 +161,52 @@
         </main>
     </div>
 
-    <!-- PRICING & COMPARISON MODAL -->
+    <!-- PRICING MODAL -->
     <div x-show="showPricing" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
         <div @click.away="showPricing = false" class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-5xl w-full p-8 md:p-12 my-8 relative shadow-2xl">
             <button @click="showPricing = false" class="absolute top-6 right-6 text-zinc-500 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-            
             <h2 class="text-3xl font-bold text-center mb-10">Refill Credits</h2>
-
             <div class="grid md:grid-cols-3 gap-6 mb-12">
-                <div class="card-dark p-8 rounded-3xl text-center flex flex-col border border-zinc-800">
+                <div class="card-dark p-8 rounded-3xl text-center flex flex-col">
                     <h3 class="font-bold text-zinc-500 text-[10px] uppercase mb-4 tracking-widest">Starter</h3>
                     <p class="text-4xl font-bold mb-1">₹500</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">250 Credits<br>(~25 Clips of 10s)</p>
                     <button class="w-full py-3 bg-zinc-800 rounded-xl font-bold hover:bg-zinc-700 transition">Buy Starter</button>
                 </div>
-                <div class="border-2 border-indigo-600 bg-indigo-600/5 p-8 rounded-3xl text-center flex flex-col relative scale-105 shadow-2xl shadow-indigo-600/10">
-                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Most Popular</span>
+                <div class="border-2 border-indigo-600 bg-indigo-600/5 p-8 rounded-3xl text-center flex flex-col relative scale-105">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Value</span>
                     <h3 class="font-bold text-indigo-400 text-[10px] uppercase mb-4 tracking-widest">Pro</h3>
                     <p class="text-4xl font-bold mb-1">₹1,000</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">500 Credits<br>(~50 Clips of 10s)</p>
                     <button class="w-full py-3 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-600/20">Buy Pro</button>
                 </div>
-                <div class="card-dark p-8 rounded-3xl text-center flex flex-col border border-zinc-800">
-                    <h3 class="font-bold text-indigo-500 text-[10px] uppercase mb-4 tracking-widest">Enterprise Value</h3>
+                <div class="card-dark p-8 rounded-3xl text-center flex flex-col">
+                    <h3 class="font-bold text-indigo-500 text-[10px] uppercase mb-4 tracking-widest">Value Pack</h3>
                     <p class="text-4xl font-bold mb-1">₹5,000</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">10,000 Credits<br>(~1,000 Clips of 10s)</p>
                     <button class="w-full py-3 bg-zinc-800 rounded-xl font-bold hover:bg-zinc-700 transition">Buy Value Pack</button>
                 </div>
             </div>
-
-            <!-- Comparison Table -->
-            <div class="mt-8">
-                <h4 class="text-sm font-bold text-zinc-300 mb-6 flex items-center gap-2">
-                    <i data-lucide="trending-down" class="w-4 h-4 text-green-400"></i> Why Nova AI is better
-                </h4>
-                <div class="overflow-hidden border border-zinc-800 rounded-2xl bg-zinc-900/30">
-                    <table class="w-full text-left text-[11px]">
-                        <thead class="bg-zinc-900 text-zinc-500 font-bold uppercase tracking-widest">
-                            <tr><th class="p-4 border-r border-zinc-800">Platform</th><th class="p-4 border-r border-zinc-800">Subscription Cost</th><th class="p-4 border-r border-zinc-800">Price Per Clip</th><th class="p-4">Condition</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-800 text-zinc-400">
-                            <tr class="divide-x divide-zinc-800">
-                                <td class="p-4 font-medium text-zinc-300">Seedance Pro</td><td class="p-4">₹1,670/mo ($19.9)</td><td class="p-4">₹85-160</td><td class="p-4 text-red-500">Monthly Expiry</td>
-                            </tr>
-                            <tr class="divide-x divide-zinc-800">
-                                <td class="p-4 font-medium text-zinc-300">Google Flow (Veo 3)</td><td class="p-4">₹1,950/mo</td><td class="p-4">₹26-32.50</td><td class="p-4 text-red-500">Compulsory Sub</td>
-                            </tr>
-                            <tr class="bg-indigo-600/10 font-bold text-indigo-400 divide-x divide-zinc-800">
-                                <td class="p-4">Nova AI (Ours)</td><td class="p-4 text-green-400">₹500 (Pay once)</td><td class="p-4 text-green-400">₹20</td><td class="p-4">Credits Never Expire</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <!-- Market Comparison -->
+            <div class="overflow-hidden border border-zinc-800 rounded-2xl bg-zinc-900/30">
+                <table class="w-full text-left text-[11px]">
+                    <thead class="bg-zinc-900 text-zinc-500 font-bold uppercase tracking-widest">
+                        <tr><th class="p-4 border-r border-zinc-800">Platform</th><th class="p-4 border-r border-zinc-800">Cost</th><th class="p-4 border-r border-zinc-800">Price Per Clip</th><th class="p-4">Policy</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 text-zinc-400">
+                        <tr class="divide-x divide-zinc-800"><td class="p-4">Seedance Pro</td><td class="p-4">₹1,670/mo</td><td class="p-4">₹85-160</td><td class="p-4 text-red-500">Monthly Expiry</td></tr>
+                        <tr class="divide-x divide-zinc-800"><td class="p-4">Google Veo 3</td><td class="p-4">₹1,950/mo</td><td class="p-4">₹26-32</td><td class="p-4 text-red-500">Compulsory Sub</td></tr>
+                        <tr class="bg-indigo-600/10 font-bold text-indigo-400 divide-x divide-zinc-800"><td class="p-4">Nova AI (Ours)</td><td class="p-4 text-green-400">₹500 (One-time)</td><td class="p-4 text-green-400">₹20</td><td class="p-4">Never Expire</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <!-- AUTH MODAL -->
     <div x-show="showAuth" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm">
-        <div class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-md w-full p-10 text-center shadow-2xl">
-            <h2 class="text-2xl font-bold mb-2">Sign in to Nova AI</h2>
-            <p class="text-zinc-400 text-sm mb-8">Verified Google login required to claim 20 free credits.</p>
+        <div class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-md w-full p-10 text-center">
+            <h2 class="text-2xl font-bold mb-8">Sign in to Nova AI</h2>
             <button @click="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200 transition">
                 <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                 Continue with Google
@@ -221,7 +214,6 @@
         </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script>
         const sbClient = supabase.createClient(
             'https://qvuwznitvqruqmkkuecl.supabase.co', 
@@ -235,6 +227,7 @@
                 credits: 0,
                 userTier: 'free',
                 duration: 5,
+                currentCost: 6, // Default cost for 5s
                 ratio: '16:9',
                 prompt: '',
                 loading: false,
@@ -255,18 +248,9 @@
                     if (this.user) {
                         this.showAuth = false;
                         this.fetchingCredits = true;
-                        
-                        let { data, error } = await sbClient
-                            .from('profiles')
-                            .select('credits, tier')
-                            .eq('id', this.user.id)
-                            .single();
-
+                        let { data, error } = await sbClient.from('profiles').select('credits, tier').eq('id', this.user.id).single();
                         if (error && error.code === 'PGRST116') {
-                            const { data: newProf } = await sbClient
-                                .from('profiles')
-                                .insert({ id: this.user.id, credits: 20, tier: 'free' })
-                                .select().single();
+                            const { data: newProf } = await sbClient.from('profiles').insert({ id: this.user.id, credits: 20, tier: 'free' }).select().single();
                             this.credits = newProf.credits;
                             this.userTier = newProf.tier;
                         } else {
@@ -280,28 +264,14 @@
 
                 async generateVideo() {
                     if (!this.user) { this.showAuth = true; return; }
-                    if (this.credits < this.duration) { this.showPricing = true; return; }
+                    if (this.credits < this.currentCost) { this.showPricing = true; return; }
 
                     this.loading = true;
-
-                    // FAL.AI API Payload Template
-                    // Correct implementation for Wan 2.1 or Luma on Fal.ai
-                    const payload = {
-                        prompt: this.prompt,
-                        duration: this.duration,
-                        aspect_ratio: this.ratio,
-                        model_name: "fal-ai/wan-v2.1/t2v-turbo" 
-                    };
-                    console.log("Preparing Payload for Fal.ai:", payload);
-
-                    const { error } = await sbClient
-                        .from('profiles')
-                        .update({ credits: this.credits - this.duration })
-                        .eq('id', this.user.id);
+                    const { error } = await sbClient.from('profiles').update({ credits: this.credits - this.currentCost }).eq('id', this.user.id);
 
                     if (!error) {
                         setTimeout(() => {
-                            this.credits -= this.duration;
+                            this.credits -= this.currentCost;
                             this.loading = false;
                             this.generated = true;
                             this.$nextTick(() => lucide.createIcons());
@@ -309,17 +279,8 @@
                     }
                 },
 
-                async handleGoogleLogin() {
-                    await sbClient.auth.signInWithOAuth({ 
-                        provider: 'google', 
-                        options: { redirectTo: window.location.origin } 
-                    });
-                },
-
-                async handleSignOut() {
-                    await sbClient.auth.signOut();
-                    window.location.reload();
-                }
+                async handleGoogleLogin() { await sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); },
+                async handleSignOut() { await sbClient.auth.signOut(); window.location.reload(); }
             }
         }
     </script>
