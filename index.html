@@ -218,5 +218,41 @@
 
         document.addEventListener('DOMContentLoaded', initAuth);
     </script>
+	
+	// URL లో యాక్సెస్ టోకెన్ ఉన్నప్పుడు దాన్ని రీడ్ చేసి సెషన్ సెట్ చేయడం
+async function handleOAuthRedirect() {
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken) {
+            const { data, error } = await supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            });
+            
+            if (data?.session) {
+                // టోకెన్ సెట్ అయిన వెంటనే URL క్లీన్ చేసి UI అప్‌డేట్ చేయడం
+                window.history.replaceState({}, document.title, window.location.pathname);
+                renderLoggedInUI(data.session.user);
+            }
+        }
+    }
+}
+
+// పేజీ లోడ్ అయిన వెంటనే దీన్ని రన్ చేయండి
+document.addEventListener('DOMContentLoaded', async () => {
+    await handleOAuthRedirect();
+    
+    // ఒకవేళ ఆల్రెడీ లాగిన్ అయి ఉంటే సెషన్ చెక్ చేయడం
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        renderLoggedInUI(session.user);
+    } else {
+        renderLoggedOutUI();
+    }
+});
+	
 </body>
 </html>
