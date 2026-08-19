@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova AI | Professional Video Studio</title>
+    <title>Nova AI | Video Generation Studio</title>
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -15,19 +15,13 @@
         body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #fafafa; }
         .glass-header { background: rgba(9, 9, 11, 0.9); backdrop-filter: blur(16px); border-bottom: 1px solid #27272a; }
         .card-dark { background: #121214; border: 1px solid #27272a; }
-        .indigo-gradient { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-        
         .shimmer {
             background: linear-gradient(90deg, #18181b 25%, #27272a 50%, #18181b 75%);
             background-size: 200% 100%;
             animation: shimmer 2s infinite linear;
         }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-        /* Smooth watermark entrance */
-        .watermark-badge {
-            animation: fadeIn 1s ease-out;
-        }
+        .watermark-badge { animation: fadeIn 1s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -39,7 +33,7 @@
             <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
             </div>
-            <span class="text-xl font-bold tracking-tight">Nova AI</span>
+            <span class="text-xl font-bold tracking-tight text-white">Nova AI</span>
         </div>
 
         <nav class="flex-1 px-4 space-y-1">
@@ -51,7 +45,6 @@
             </button>
         </nav>
 
-        <!-- CREDIT TRACKER -->
         <div class="p-4 m-4 rounded-xl card-dark">
             <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
                 <span x-text="userTier === 'paid' ? 'Pro Credits' : 'Free Credits'"></span>
@@ -64,10 +57,13 @@
                 <div x-show="fetchingCredits" class="h-8 w-16 shimmer rounded-md mb-1"></div>
                 <button @click="showPricing = true" class="text-xs text-indigo-400 font-bold hover:underline mb-1">Top up</button>
             </div>
+            <div class="w-full bg-zinc-800 h-1 mt-3 rounded-full overflow-hidden">
+                <div class="bg-indigo-600 h-full transition-all duration-500" :style="`width: ${(credits/1500)*100}%`"></div>
+            </div>
         </div>
     </aside>
 
-    <!-- MAIN UI -->
+    <!-- MAIN CONTENT -->
     <div class="flex-1 flex flex-col relative overflow-hidden bg-zinc-950">
         
         <header class="h-16 flex items-center justify-between px-8 glass-header z-40">
@@ -75,12 +71,12 @@
             
             <div class="flex items-center gap-4">
                 <template x-if="!user">
-                    <button @click="showAuth = true" class="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-lg transition hover:bg-indigo-500">Login</button>
+                    <button @click="showAuth = true" class="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-lg">Login</button>
                 </template>
                 <template x-if="user">
                     <div class="flex items-center gap-4" x-cloak>
-                        <div class="flex items-center gap-3 border-r border-zinc-800 pr-4">
-                            <div class="text-right hidden sm:block">
+                        <div class="flex items-center gap-3 border-r border-zinc-800 pr-4 text-right">
+                            <div class="hidden sm:block">
                                 <p class="text-sm font-bold text-white leading-none" x-text="user.user_metadata.full_name"></p>
                                 <p class="text-[10px] text-zinc-500 mt-1" x-text="userTier === 'paid' ? 'Pro Member' : 'Free Plan'"></p>
                             </div>
@@ -93,76 +89,58 @@
         </header>
 
         <main class="flex-1 overflow-y-auto p-8">
-            <!-- GENERATOR -->
             <div x-show="view === 'generator'" class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Controls -->
                 <div class="lg:col-span-5 space-y-6">
-                    <!-- Prompt -->
                     <div class="space-y-3">
                         <label class="text-sm font-semibold text-zinc-300">Prompt Description</label>
-                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm text-white focus:ring-1 focus:ring-indigo-600 outline-none" placeholder="A cinematic drone shot of a futuristic neon city..."></textarea>
+                        <textarea x-model="prompt" class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-sm text-white focus:ring-1 focus:ring-indigo-600 outline-none" placeholder="A cinematic drone shot..."></textarea>
                     </div>
 
-                    <!-- Engine Selector -->
                     <div class="space-y-3">
                         <label class="text-[10px] font-bold text-zinc-500 uppercase">Engine Selection</label>
                         <div class="space-y-2">
-                            <!-- Fast Engine -->
                             <button @click="engine = 'fast'" :class="engine === 'fast' ? 'border-indigo-600 bg-indigo-600/10' : 'border-zinc-800 bg-zinc-900'" class="w-full flex items-center justify-between p-4 border rounded-xl transition">
-                                <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-3 text-left">
                                     <i data-lucide="zap" class="w-4 h-4 text-yellow-500"></i>
-                                    <div class="text-left">
-                                        <p class="text-sm font-bold">Fast Engine</p>
-                                        <p class="text-[10px] text-zinc-500">Luma/Fal.ai - 10 Credits / Video</p>
-                                    </div>
+                                    <div><p class="text-sm font-bold">Fast Engine</p><p class="text-[10px] text-zinc-500">10 Credits / 10s Video</p></div>
                                 </div>
-                                <i x-show="engine === 'fast'" data-lucide="check-circle" class="w-4 h-4 text-indigo-500"></i>
                             </button>
-
-                            <!-- HD Ultra Engine -->
                             <button @click="userTier === 'paid' ? engine = 'hd' : showPricing = true" :class="engine === 'hd' ? 'border-indigo-600 bg-indigo-600/10' : 'border-zinc-800 bg-zinc-900'" class="w-full flex items-center justify-between p-4 border rounded-xl transition group">
-                                <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-3 text-left">
                                     <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
-                                    <div class="text-left">
-                                        <div class="flex items-center gap-2">
-                                            <p class="text-sm font-bold">HD Ultra Engine</p>
-                                            <template x-if="userTier === 'free'">
-                                                <i data-lucide="lock" class="w-3 h-3 text-zinc-500 group-hover:text-white transition"></i>
-                                            </template>
-                                        </div>
-                                        <p class="text-[10px] text-zinc-500">Veo 3/Seedance - 25 Credits / Video</p>
-                                    </div>
+                                    <div><p class="text-sm font-bold">HD Ultra Engine <i data-lucide="lock" x-show="userTier === 'free'" class="inline w-3 h-3 ml-1 text-zinc-500"></i></p><p class="text-[10px] text-zinc-500">Google Veo 3 - 25 Credits</p></div>
                                 </div>
-                                <template x-if="userTier === 'free'">
-                                    <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-tighter">Upgrade</span>
-                                </template>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Generate Button -->
-                    <button @click="generateVideo()" 
-                            :disabled="loading || credits < (engine === 'fast' ? 10 : 25)" 
-                            class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition shadow-xl">
+                    <button @click="generateVideo()" :disabled="loading || credits < (engine === 'fast' ? 10 : 25)" 
+                            class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white font-bold rounded-2xl transition shadow-xl">
                         <span x-show="!loading" x-text="credits < (engine === 'fast' ? 10 : 25) ? 'Low Balance' : 'Generate Video'"></span>
                         <span x-show="loading">Synthesizing...</span>
                     </button>
                 </div>
 
-                <!-- PREVIEW -->
+                <!-- Preview Area -->
                 <div class="lg:col-span-7">
-                    <div class="relative w-full rounded-3xl border border-zinc-800 bg-zinc-900 aspect-video flex items-center justify-center overflow-hidden group">
-                        
-                        <!-- Watermark (Conditional) -->
+                    <div class="relative w-full rounded-3xl border border-zinc-800 bg-zinc-900 aspect-video flex items-center justify-center overflow-hidden">
+                        <!-- Watermark -->
                         <template x-if="userTier === 'free' && generated">
                             <div class="absolute bottom-4 right-4 z-20 watermark-badge flex items-center gap-2 bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-full">
                                 <i data-lucide="sparkles" class="w-3 h-3 text-indigo-400"></i>
-                                <span class="text-[10px] font-bold text-white tracking-tight">Made with Nova AI</span>
+                                <span class="text-[10px] font-bold text-white">Made with Nova AI</span>
                             </div>
                         </template>
 
                         <div x-show="!loading && !generated" class="text-zinc-700 flex flex-col items-center">
                             <i data-lucide="video" class="w-12 h-12 mb-2 opacity-20"></i>
                             <span class="text-sm">Video Preview Window</span>
+                        </div>
+
+                        <div x-show="loading" class="text-center">
+                            <div class="w-48 h-1 bg-zinc-800 rounded-full overflow-hidden mb-2"><div class="shimmer h-full w-full"></div></div>
+                            <p class="text-[10px] text-zinc-500 animate-pulse">Encoding AI Frames...</p>
                         </div>
 
                         <template x-if="generated && !loading">
@@ -176,46 +154,53 @@
 
     <!-- PRICING MODAL -->
     <div x-show="showPricing" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-        <div @click.away="showPricing = false" class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-4xl w-full p-8 md:p-12 relative shadow-2xl">
+        <div @click.away="showPricing = false" class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-4xl w-full p-8 md:p-12 my-8 relative">
             <button @click="showPricing = false" class="absolute top-6 right-6 text-zinc-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
             
             <div class="text-center mb-10">
                 <h2 class="text-3xl font-bold mb-2">Upgrade to Pro</h2>
-                <p class="text-zinc-400">Unlock HD Ultra Engine and remove watermarks.</p>
+                <p class="text-zinc-400">Remove watermarks and unlock HD Ultra engines.</p>
             </div>
 
-            <!-- Pricing Grid -->
+            <!-- Plans -->
             <div class="grid md:grid-cols-3 gap-6 mb-12">
-                <div class="card-dark p-8 rounded-3xl text-center flex flex-col">
-                    <h3 class="font-bold text-zinc-400 text-[10px] uppercase mb-4">Starter</h3>
+                <div class="card-dark p-6 rounded-3xl text-center">
+                    <h3 class="font-bold text-zinc-500 text-[10px] uppercase mb-2">Starter</h3>
                     <p class="text-3xl font-bold mb-1">₹499</p>
-                    <p class="text-zinc-500 text-xs mb-8 flex-1">150 Credits<br>HD Engine Included</p>
-                    <button class="w-full py-2 bg-zinc-800 rounded-lg text-sm font-bold transition hover:bg-zinc-700">Buy Starter</button>
+                    <p class="text-zinc-500 text-xs mb-6">150 Credits</p>
+                    <button class="w-full py-2 bg-zinc-800 rounded-lg text-sm font-bold hover:bg-zinc-700">Buy Starter</button>
                 </div>
-                <div class="border-2 border-indigo-600 bg-indigo-600/5 p-8 rounded-3xl text-center flex flex-col relative">
-                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Value</span>
-                    <h3 class="font-bold text-indigo-400 text-[10px] uppercase mb-4">Pro</h3>
+                <div class="border-2 border-indigo-600 bg-indigo-600/5 p-6 rounded-3xl text-center relative">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">Most Popular</span>
+                    <h3 class="font-bold text-indigo-400 text-[10px] uppercase mb-2">Pro</h3>
                     <p class="text-3xl font-bold mb-1">₹1,499</p>
-                    <p class="text-zinc-500 text-xs mb-8 flex-1">500 Credits<br>Watermarks Removed</p>
-                    <button class="w-full py-2 bg-indigo-600 rounded-lg text-sm font-bold transition hover:bg-indigo-500">Buy Pro</button>
+                    <p class="text-zinc-500 text-xs mb-6">500 Credits</p>
+                    <button class="w-full py-2 bg-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-600/20">Buy Pro</button>
                 </div>
-                <div class="card-dark p-8 rounded-3xl text-center flex flex-col">
-                    <h3 class="font-bold text-zinc-400 text-[10px] uppercase mb-4">Business</h3>
+                <div class="card-dark p-6 rounded-3xl text-center">
+                    <h3 class="font-bold text-zinc-500 text-[10px] uppercase mb-2">Business</h3>
                     <p class="text-3xl font-bold mb-1">₹3,499</p>
-                    <p class="text-zinc-500 text-xs mb-8 flex-1">1,500 Credits<br>API & Direct Download</p>
-                    <button class="w-full py-2 bg-zinc-800 rounded-lg text-sm font-bold transition hover:bg-zinc-700">Buy Business</button>
+                    <p class="text-zinc-500 text-xs mb-6">1,500 Credits</p>
+                    <button class="w-full py-2 bg-zinc-800 rounded-lg text-sm font-bold hover:bg-zinc-700">Buy Business</button>
                 </div>
             </div>
 
             <!-- Comparison Table -->
-            <div class="overflow-hidden border border-zinc-800 rounded-2xl bg-zinc-900/50">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-zinc-900 text-zinc-500 font-bold uppercase tracking-widest"><tr class="divide-x divide-zinc-800"><th class="p-4">Platform</th><th class="p-4">Price Per Clip</th><th class="p-4">Savings</th></tr></thead>
-                    <tbody class="divide-y divide-zinc-800 text-zinc-400">
-                        <tr class="divide-x divide-zinc-800"><td class="p-4">Seedance / Google Direct</td><td class="p-4">₹150</td><td class="p-4">0%</td></tr>
-                        <tr class="divide-x divide-zinc-800 bg-indigo-600/5 font-bold"><td class="p-4 text-white">Nova AI (Pro Plan)</td><td class="p-4 text-indigo-400">₹30</td><td class="p-4 text-green-400">80% Less</td></tr>
-                    </tbody>
-                </table>
+            <div class="mt-8">
+                <h4 class="text-sm font-bold text-zinc-300 mb-6 flex items-center gap-2">
+                    <i data-lucide="trending-down" class="w-4 h-4 text-green-400"></i> Why choose Nova AI?
+                </h4>
+                <div class="overflow-hidden border border-zinc-800 rounded-2xl bg-zinc-900/30">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-900 text-zinc-500 font-bold uppercase tracking-widest">
+                            <tr><th class="p-4 border-r border-zinc-800">Platform</th><th class="p-4 border-r border-zinc-800">Price Per Clip</th><th class="p-4">Cost for 50 Clips</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800 text-zinc-400">
+                            <tr><td class="p-4 border-r border-zinc-800 font-medium text-zinc-300">Google/Seedance Direct</td><td class="p-4 border-r border-zinc-800">~₹150</td><td class="p-4">₹7,500</td></tr>
+                            <tr class="bg-indigo-600/10"><td class="p-4 border-r border-zinc-800 font-bold text-indigo-400">Nova AI (Pro Plan)</td><td class="p-4 border-r border-zinc-800 font-bold text-indigo-400">~₹30</td><td class="p-4 font-bold text-green-400">₹1,499 (Save 80%)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -224,7 +209,7 @@
     <div x-show="showAuth" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
         <div class="bg-zinc-950 border border-zinc-800 rounded-[2.5rem] max-w-md w-full p-10 text-center shadow-2xl">
             <h2 class="text-2xl font-bold mb-2">Sign in to Nova AI</h2>
-            <p class="text-zinc-400 text-sm mb-8">Google account required for verified sign up bonus.</p>
+            <p class="text-zinc-400 text-sm mb-8">Google login required for verified bonus.</p>
             <button @click="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-4 rounded-2xl hover:bg-zinc-200 transition">
                 <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                 Continue with Google
@@ -232,7 +217,6 @@
         </div>
     </div>
 
-    <!-- SCRIPTS -->
     <script>
         const sbClient = supabase.createClient(
             'https://qvuwznitvqruqmkkuecl.supabase.co', 
@@ -269,7 +253,6 @@
                         this.showAuth = false;
                         this.fetchingCredits = true;
                         
-                        // Permanent Database Sync
                         let { data, error } = await sbClient
                             .from('profiles')
                             .select('credits, tier')
@@ -277,7 +260,6 @@
                             .single();
 
                         if (error && error.code === 'PGRST116') {
-                            // New Verified User: Grant 20 Credit Bonus Once
                             const { data: newProf } = await sbClient
                                 .from('profiles')
                                 .insert({ id: this.user.id, credits: 20, tier: 'free' })
@@ -289,9 +271,6 @@
                             this.userTier = data.tier;
                         }
                         this.fetchingCredits = false;
-                    } else {
-                        this.credits = 0;
-                        this.userTier = 'free';
                     }
                     this.$nextTick(() => lucide.createIcons());
                 },
@@ -308,25 +287,23 @@
                     this.loading = true;
                     const newBalance = this.credits - cost;
 
-                    // Permanently deduct in Database
                     const { error } = await sbClient
                         .from('profiles')
                         .update({ credits: newBalance })
                         .eq('id', this.user.id);
 
                     if (error) {
-                        alert("Database error: " + error.message);
+                        alert(error.message);
                         this.loading = false;
                         return;
                     }
 
-                    // Simulated Generation
                     setTimeout(() => {
                         this.credits = newBalance;
                         this.loading = false;
                         this.generated = true;
                         this.$nextTick(() => lucide.createIcons());
-                    }, 3500);
+                    }, 3000);
                 },
 
                 async handleGoogleLogin() {
