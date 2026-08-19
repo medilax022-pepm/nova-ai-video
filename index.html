@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Razorpay Checkout Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -147,7 +149,7 @@
 
                         <div x-show="loading" class="text-center z-10">
                             <div class="w-64 h-1 bg-zinc-800 rounded-full overflow-hidden mb-4"><div class="shimmer h-full w-full"></div></div>
-                            <p class="text-[10px] text-zinc-500 animate-pulse tracking-[0.2em] uppercase font-black">Building AI Assets</p>
+                            <p class="text-[10px] text-zinc-500 animate-pulse tracking-[0.2em] uppercase font-black">Building AI Assets (Wan 2.1)</p>
                         </div>
 
                         <template x-if="generatedUrl && !loading">
@@ -162,7 +164,7 @@
                                 <!-- Download Button & Use as Ref -->
                                 <div class="absolute bottom-6 left-6 right-6 flex justify-between items-center z-30 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div class="flex gap-2">
-                                        <a :href="generatedUrl" download="NovaAI_Export.mp4" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-zinc-200 transition">
+                                        <a :href="generatedUrl" download="NovaAI_Export" class="bg-white text-black px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-zinc-200 transition">
                                             <i data-lucide="download" class="w-4 h-4"></i> Download 1080p
                                         </a>
                                         <button x-show="generatedType === 'image'" @click="useAsRef()" class="bg-zinc-900/80 backdrop-blur text-white px-4 py-2.5 rounded-xl font-bold text-xs border border-zinc-700">
@@ -192,20 +194,20 @@
                     <h3 class="text-zinc-500 text-[10px] font-black uppercase mb-4 tracking-widest">Starter</h3>
                     <p class="text-5xl font-black mb-2">₹500</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">250 Credits<br>(~25 Clips of 10s)</p>
-                    <button class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition">Get Started</button>
+                    <button @click="buyCredits(500, 250)" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition">Get Started</button>
                 </div>
                 <div class="border-2 border-indigo-600 bg-indigo-600/5 p-8 rounded-[2rem] text-center flex flex-col relative scale-105 shadow-2xl shadow-indigo-600/10">
                     <span class="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Value Pack</span>
                     <h3 class="text-indigo-400 text-[10px] font-black uppercase mb-4 tracking-widest">Pro</h3>
                     <p class="text-5xl font-black mb-2">₹1,000</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">500 Credits<br>(~50 Clips of 10s)</p>
-                    <button class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-500 transition">Buy Pro</button>
+                    <button @click="buyCredits(1000, 500)" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-500 transition">Buy Pro</button>
                 </div>
                 <div class="card-dark p-8 rounded-[2rem] text-center flex flex-col border-zinc-800">
                     <h3 class="text-zinc-500 text-[10px] font-black uppercase mb-4 tracking-widest">Bulk Packs</h3>
                     <p class="text-5xl font-black mb-2">₹5,000</p>
                     <p class="text-zinc-500 text-xs mb-8 flex-1">10,000 Credits<br>(~1000 Clips of 10s)</p>
-                    <button class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition">Buy Business</button>
+                    <button @click="buyCredits(5000, 10000)" class="w-full py-4 bg-zinc-900 text-white rounded-2xl font-bold text-sm hover:bg-zinc-800 transition">Buy Business</button>
                 </div>
             </div>
 
@@ -260,7 +262,7 @@
 
                 currentCost() {
                     if (this.mode === 't2i') return 1;
-                    return (this.duration === 10) ? 10 : 6;
+                    return (this.duration === 10) ? 10 : 5;
                 },
 
                 async syncProfile(user) {
@@ -303,15 +305,16 @@
                     this.loading = true;
                     this.generatedUrl = '';
                     
-                    // Logic dispatch for Fal.ai payloads
+                    // Configured to use Cost-Effective Fal.ai Models (Wan 2.1 & Flux)
+                    const endpointModel = (this.mode === 't2i') ? 'fal-ai/flux/schnell' : 'fal-ai/wan-2-1-t2v';
                     const payload = {
+                        model: endpointModel,
                         prompt: this.prompt,
-                        mode: this.mode,
                         aspect_ratio: this.ratio,
                         duration: this.duration,
-                        ref_image: this.refImage
+                        image_url: this.refImage
                     };
-                    console.log("Fal.ai Payload Prepared:", payload);
+                    console.log("Fal.ai Cost-Effective Payload:", payload);
 
                     const { error } = await sbClient.from('profiles').update({ credits: this.credits - cost }).eq('id', this.user.id);
                     
@@ -326,10 +329,44 @@
                     }
                 },
 
+                // Razorpay Checkout Integration
+                buyCredits(amountInINR, creditsToAdd) {
+                    if (!this.user) return this.showAuth = true;
+                    
+                    var options = {
+                        "key": "YOUR_RAZORPAY_KEY_ID", // మీ రేజర్‌పే కీ ఇక్కడ ఎంటర్ చేయండి
+                        "amount": amountInINR * 100, // పైసాలో అమౌంట్
+                        "currency": "INR",
+                        "name": "Nova AI",
+                        "description": creditsToAdd + " Credits Top-up",
+                        "handler": async (response) => {
+                            alert("Payment Successful! Payment ID: " + response.razorpay_payment_id);
+                            
+                            // Supabase లో క్రెడిట్స్ యాడ్ చేయడం
+                            const newTotalCredits = this.credits + creditsToAdd;
+                            const { error } = await sbClient.from('profiles').update({ credits: newTotalCredits }).eq('id', this.user.id);
+                            
+                            if (!error) {
+                                this.credits = newTotalCredits;
+                                this.showPricing = false;
+                                alert("Successfully added " + creditsToAdd + " credits to your account!");
+                            }
+                        },
+                        "prefill": {
+                            "name": this.user.user_metadata.full_name || 'User',
+                            "email": this.user.email
+                        },
+                        "theme": {
+                            "color": "#4f46e5"
+                        }
+                    };
+                    var rzp = new Razorpay(options);
+                    rzp.open();
+                },
+
                 async handleGoogleLogin() { await sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); },
 
                 async handleSignOut() {
-                    // Critical Purge Logic
                     if (this.generatedUrl) URL.revokeObjectURL(this.generatedUrl);
                     this.generatedUrl = '';
                     this.refImage = null;
