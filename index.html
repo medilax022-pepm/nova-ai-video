@@ -6,7 +6,7 @@
     <title>Nova AI - Video Studio</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-[#0b0f17] text-gray-100 font-sans min-h-screen flex flex-col antialiased">
@@ -21,7 +21,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <!-- Auth Buttons (Shown when logged out) -->
+            <!-- Logged Out UI -->
             <div id="auth-buttons" class="flex items-center gap-3">
                 <button onclick="toggleModal('login-modal')" class="text-sm font-medium text-gray-300 hover:text-white px-3 py-2 rounded-lg transition">
                     Login
@@ -31,10 +31,10 @@
                 </button>
             </div>
 
-            <!-- User Profile Section (Shown when logged in) -->
+            <!-- Logged In UI -->
             <div id="user-profile" class="hidden flex items-center gap-3 border-l border-gray-800 pl-4">
-                <img id="user-avatar" src="https://via.placeholder.com/32" alt="User Avatar" class="w-8 h-8 rounded-full border border-gray-700">
-                <span id="user-name" class="text-sm font-medium text-gray-200">User</span>
+                <img id="user-avatar" src="" alt="User Avatar" class="w-8 h-8 rounded-full border border-gray-700">
+                <span id="user-name" class="text-sm font-medium text-gray-200"></span>
                 <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2 py-1.5 rounded-md transition ml-2">
                     Logout
                 </button>
@@ -62,7 +62,6 @@
                 </a>
             </nav>
 
-            <!-- Credits Box -->
             <div class="p-4 rounded-xl border border-gray-800 bg-gray-900/40">
                 <div class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">CREDITS</div>
                 <div id="credit-count" class="text-2xl font-bold text-white mb-2">0</div>
@@ -73,7 +72,6 @@
         <!-- Studio Dashboard -->
         <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
             <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
                 <div class="lg:col-span-5 space-y-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-300 mb-2">Prompt</label>
@@ -111,7 +109,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -122,10 +119,8 @@
             <button onclick="toggleModal('login-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
-            
             <h3 class="text-xl font-bold text-white mb-1">Welcome back</h3>
             <p class="text-sm text-gray-400 mb-6">Sign in to your account to generate AI videos.</p>
-
             <button onclick="signInWithGoogle()" class="w-full py-3 px-4 bg-white text-gray-900 hover:bg-gray-100 font-semibold text-sm rounded-xl transition flex items-center justify-center gap-3 shadow">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
@@ -138,6 +133,7 @@
         </div>
     </div>
 
+    <!-- JavaScript Logic Start -->
     <script>
         lucide.createIcons();
 
@@ -146,52 +142,64 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        async function initAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            updateAuthUI(session?.user || null);
+        async function handleOAuthRedirect() {
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const accessToken = hashParams.get('access_token');
+                const refreshToken = hashParams.get('refresh_token');
 
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                updateAuthUI(session?.user || null);
-            });
+                if (accessToken) {
+                    const { data } = await supabaseClient.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    if (data?.session) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        renderLoggedInUI(data.session.user);
+                    }
+                }
+            }
         }
 
-        function updateAuthUI(user) {
+        function renderLoggedInUI(user) {
             const authButtons = document.getElementById('auth-buttons');
             const userProfile = document.getElementById('user-profile');
             const userAvatar = document.getElementById('user-avatar');
             const userName = document.getElementById('user-name');
             const creditCount = document.getElementById('credit-count');
 
-            if (user) {
-                authButtons.classList.add('hidden');
-                userProfile.classList.remove('hidden');
-                
-                const avatar = user.user_metadata?.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.email;
-                const name = user.user_metadata?.full_name || user.email.split('@')[0];
+            const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+            const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${name}`;
 
-                userAvatar.src = avatar;
-                userName.textContent = name;
-                creditCount.textContent = '100 / 100'; // User లాగిన్ కాగానే క్రెడిట్లు 100 చూపిస్తుంది
-            } else {
-                authButtons.classList.remove('hidden');
-                userProfile.classList.add('hidden');
-                creditCount.textContent = '0'; // లాగౌట్ అయితే 0 చూపిస్తుంది
-            }
+            if (authButtons) authButtons.classList.add('hidden');
+            if (userProfile) userProfile.classList.remove('hidden');
+            if (userName) userName.textContent = name;
+            if (userAvatar) userAvatar.src = avatar;
+            if (creditCount) creditCount.textContent = '100 / 100';
+        }
+
+        function renderLoggedOutUI() {
+            const authButtons = document.getElementById('auth-buttons');
+            const userProfile = document.getElementById('user-profile');
+            const creditCount = document.getElementById('credit-count');
+
+            if (authButtons) authButtons.classList.remove('hidden');
+            if (userProfile) userProfile.classList.add('hidden');
+            if (creditCount) creditCount.textContent = '0';
         }
 
         async function signInWithGoogle() {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
+            await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: 'https://nova-ai-video.vercel.app'
+                    redirectTo: window.location.origin
                 }
             });
-            if (error) console.error("OAuth Error:", error.message);
         }
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            window.location.href = 'https://nova-ai-video.vercel.app';
+            window.location.href = window.location.origin;
         }
 
         function toggleModal(modalId) {
@@ -207,52 +215,31 @@
                 toggleModal('login-modal');
                 return;
             }
-
             if (!prompt) {
                 alert('Please enter a prompt!');
                 return;
             }
-
             alert('Generating video for prompt: ' + prompt);
         }
 
-        document.addEventListener('DOMContentLoaded', initAuth);
-    </script>
-	
-	// URL లో యాక్సెస్ టోకెన్ ఉన్నప్పుడు దాన్ని రీడ్ చేసి సెషన్ సెట్ చేయడం
-async function handleOAuthRedirect() {
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (accessToken) {
-            const { data, error } = await supabaseClient.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-            });
-            
-            if (data?.session) {
-                // టోకెన్ సెట్ అయిన వెంటనే URL క్లీన్ చేసి UI అప్‌డేట్ చేయడం
-                window.history.replaceState({}, document.title, window.location.pathname);
-                renderLoggedInUI(data.session.user);
+        document.addEventListener('DOMContentLoaded', async () => {
+            await handleOAuthRedirect();
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                renderLoggedInUI(session.user);
+            } else {
+                renderLoggedOutUI();
             }
-        }
-    }
-}
+        });
 
-// పేజీ లోడ్ అయిన వెంటనే దీన్ని రన్ చేయండి
-document.addEventListener('DOMContentLoaded', async () => {
-    await handleOAuthRedirect();
-    
-    // ఒకవేళ ఆల్రెడీ లాగిన్ అయి ఉంటే సెషన్ చెక్ చేయడం
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        renderLoggedInUI(session.user);
-    } else {
-        renderLoggedOutUI();
-    }
-});
-	
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                renderLoggedInUI(session.user);
+            } else {
+                renderLoggedOutUI();
+            }
+        });
+    </script>
+    <!-- JavaScript Logic End -->
 </body>
 </html>
